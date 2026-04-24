@@ -4,7 +4,7 @@ import { MapPin, TrendingUp, Users, Zap, Train, ShoppingBag, GraduationCap, Buil
 // ============================================================
 // 🔑 PASTE YOUR GRABMAPS API KEY BELOW (between the quotes)
 // ============================================================
-const GRABMAPS_API_KEY = '';
+const GRABMAPS_API_KEY = 'bm_1777010908_nsVMGFokDyyncnwaCGRv1rqKXTqyuxTR';
 // ============================================================
 
 // GrabMaps style URL — uses your API key for auth
