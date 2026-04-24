@@ -374,8 +374,17 @@ function MapLibreMap({ zones, revealedZones, onZoneClick, scanning }) {
 
       const map = new window.maplibregl.Map(opts);
       map.on('load', () => {
+        // Force resize to fill container properly
+        setTimeout(() => { map.resize(); }, 100);
         setMapLoaded(true);
         map.addControl(new window.maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+      });
+      // Backup: also try on 'idle' in case 'load' fires too early with async style
+      map.on('idle', () => {
+        if (!mapLoaded) {
+          map.resize();
+          setMapLoaded(true);
+        }
       });
       map.on('error', (e) => {
         console.warn('Map error:', e);
@@ -391,27 +400,49 @@ function MapLibreMap({ zones, revealedZones, onZoneClick, scanning }) {
   };
 
   useEffect(() => {
-    if (!mapRef.current || !window.maplibregl) return;
-    markersRef.current.forEach(m => m.remove()); markersRef.current = [];
-    zones.forEach((zone) => {
-      if (!revealedZones.includes(zone.id)) return;
-      const el = document.createElement('div'); el.style.cssText = `position:relative;cursor:${onZoneClick ? 'pointer' : 'default'};`;
-      const p1 = document.createElement('div'); p1.style.cssText = `position:absolute;width:50px;height:50px;border-radius:50%;background:${zone.color};top:50%;left:50%;transform:translate(-50%,-50%);animation:pulse-ring 2s ease-out infinite;opacity:0.4;`;
-      const p2 = document.createElement('div'); p2.style.cssText = p1.style.cssText; p2.style.animationDelay = '0.7s';
-      const dot = document.createElement('div'); dot.style.cssText = `position:relative;width:40px;height:40px;border-radius:50%;background:${zone.color};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#000;box-shadow:0 0 20px ${zone.color}80;z-index:2;transition:transform 0.2s;font-family:Inter,system-ui,sans-serif;`;
-      dot.textContent = zone.score; dot.onmouseenter = () => { dot.style.transform = 'scale(1.2)'; }; dot.onmouseleave = () => { dot.style.transform = 'scale(1)'; };
-      const label = document.createElement('div'); label.style.cssText = `position:absolute;top:48px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(0,0,0,0.8);backdrop-filter:blur(4px);padding:2px 8px;border-radius:4px;font-size:10px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:0.05em;color:white;`;
-      label.textContent = zone.name;
-      el.appendChild(p1); el.appendChild(p2); el.appendChild(dot); el.appendChild(label);
-      if (onZoneClick) el.addEventListener('click', () => onZoneClick(zone));
-      const marker = new window.maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([zone.lng, zone.lat]).addTo(mapRef.current);
-      markersRef.current.push(marker);
-    });
+    if (!mapLoaded || !mapRef.current || !window.maplibregl) return;
+    
+    // Small delay to ensure map is fully rendered after style load
+    const timer = setTimeout(() => {
+      markersRef.current.forEach(m => m.remove()); markersRef.current = [];
+      zones.forEach((zone) => {
+        if (!revealedZones.includes(zone.id)) return;
+        const el = document.createElement('div'); 
+        el.style.cssText = `position:relative;cursor:${onZoneClick ? 'pointer' : 'default'};z-index:10;`;
+        
+        const p1 = document.createElement('div'); 
+        p1.style.cssText = `position:absolute;width:50px;height:50px;border-radius:50%;background:${zone.color};top:50%;left:50%;transform:translate(-50%,-50%);animation:pulse-ring 2s ease-out infinite;opacity:0.4;pointer-events:none;`;
+        
+        const p2 = document.createElement('div'); 
+        p2.style.cssText = p1.style.cssText; 
+        p2.style.animationDelay = '0.7s';
+        
+        const dot = document.createElement('div'); 
+        dot.style.cssText = `position:relative;width:44px;height:44px;border-radius:50%;background:${zone.color};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#000;box-shadow:0 0 24px ${zone.color}80, 0 2px 8px rgba(0,0,0,0.5);z-index:2;transition:transform 0.2s;font-family:Inter,system-ui,sans-serif;border:2px solid rgba(0,0,0,0.2);`;
+        dot.textContent = zone.score; 
+        dot.onmouseenter = () => { dot.style.transform = 'scale(1.2)'; }; 
+        dot.onmouseleave = () => { dot.style.transform = 'scale(1)'; };
+        
+        const label = document.createElement('div'); 
+        label.style.cssText = `position:absolute;top:52px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);padding:3px 10px;border-radius:6px;font-size:11px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:0.05em;color:white;pointer-events:none;border:1px solid rgba(255,255,255,0.1);`;
+        label.textContent = zone.name;
+        
+        el.appendChild(p1); el.appendChild(p2); el.appendChild(dot); el.appendChild(label);
+        if (onZoneClick) el.addEventListener('click', () => onZoneClick(zone));
+        
+        const marker = new window.maplibregl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([zone.lng, zone.lat])
+          .addTo(mapRef.current);
+        markersRef.current.push(marker);
+      });
+    }, 200);
+    
+    return () => clearTimeout(timer);
   }, [revealedZones, mapLoaded]);
 
   return (
-    <div className="relative w-full h-screen">
-      <div ref={mapContainer} className="absolute inset-0" style={{ background: '#0A0E0C' }} />
+    <div style={{ position: 'relative', width: '100%', height: '100vh', minHeight: '100vh' }}>
+      <div ref={mapContainer} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', background: '#0A0E0C' }} />
       {!mapLoaded && <div className="absolute inset-0 flex items-center justify-center z-10"><div className="text-center"><div className="w-8 h-8 border-2 border-[#00B14F] border-t-transparent rounded-full animate-spin mx-auto mb-3" /><div className="text-xs text-white/40 mono">Loading map...</div></div></div>}
     </div>
   );
