@@ -345,9 +345,10 @@ function getZoneInsights(zoneId, businessLabel) {
 
 // ============================================================
 // GOOGLE PLACES COMPETITOR DATA (simulated for demo, real API ready)
+// Keyed by businessType -> zoneId for accurate per-category analysis
 // ============================================================
-function getCompetitorData(zoneId, businessType) {
-  const competitors = {
+const COMPETITOR_DB = {
+  bubbletea: {
     orchard: [
       { name: 'LiHO TEA', rating: 4.2, reviews: 1840, priceLevel: 2, bestReview: 'Amazing brown sugar boba! Best in Orchard area.', worstReview: 'Queue is always so long during lunch.', popularTimes: 'Peak: 12-2PM, 5-7PM' },
       { name: 'Gong Cha', rating: 4.0, reviews: 2150, priceLevel: 2, bestReview: 'Consistent quality, love the milk foam series.', worstReview: 'Prices have gone up recently.', popularTimes: 'Peak: 1-3PM, 6-8PM' },
@@ -375,10 +376,245 @@ function getCompetitorData(zoneId, businessType) {
     bedok: [
       { name: 'Koi Thé', rating: 3.9, reviews: 680, priceLevel: 2, bestReview: 'Reliable classic choice.', worstReview: 'Nothing special compared to newer brands.', popularTimes: 'Peak: 2-5PM' },
       { name: 'LiHO', rating: 3.8, reviews: 540, priceLevel: 2, bestReview: 'Good local alternative.', worstReview: 'Menu could be more exciting.', popularTimes: 'Peak: 12-2PM' },
-      { name: 'CoCo', rating: 3.7, reviews: 420, priceLevel: 1, bestReview: 'Affordable and quick.', worstReview: 'Drinks taste watered down sometimes.', popularTimes: 'Peak: 3-6PM' },
     ],
+  },
+  cafe: {
+    orchard: [
+      { name: 'Starbucks Reserve', rating: 4.1, reviews: 3200, priceLevel: 3, bestReview: 'Beautiful space, great single-origin coffees.', worstReview: 'Overpriced for the portion size.', popularTimes: 'Peak: 10AM-12PM, 3-5PM' },
+      { name: 'Common Man Coffee', rating: 4.4, reviews: 1650, priceLevel: 3, bestReview: 'Best specialty coffee in Orchard. Worth the price.', worstReview: 'Always packed, hard to find seats.', popularTimes: 'Peak: 9-11AM, 2-4PM' },
+      { name: 'Coffee Bean & Tea Leaf', rating: 3.9, reviews: 2800, priceLevel: 2, bestReview: 'Reliable quality, comfortable seating.', worstReview: 'Menu feels dated compared to newer cafés.', popularTimes: 'Peak: 11AM-1PM, 4-6PM' },
+    ],
+    'paya-lebar': [
+      { name: 'Dutch Colony', rating: 4.3, reviews: 920, priceLevel: 2, bestReview: 'Excellent pour-over, cozy atmosphere.', worstReview: 'Small space fills up fast on weekends.', popularTimes: 'Peak: 10AM-12PM' },
+      { name: 'Huggs Coffee', rating: 3.8, reviews: 560, priceLevel: 2, bestReview: 'Convenient location, decent coffee.', worstReview: 'Nothing remarkable.', popularTimes: 'Peak: 8-10AM, 12-2PM' },
+    ],
+    jurong: [
+      { name: 'Ya Kun Kaya Toast', rating: 4.0, reviews: 1800, priceLevel: 1, bestReview: 'Classic Singapore kopi at its best.', worstReview: 'Gets crowded during breakfast rush.', popularTimes: 'Peak: 7-9AM, 3-5PM' },
+      { name: 'Toast Box', rating: 3.7, reviews: 920, priceLevel: 1, bestReview: 'Affordable local coffee set.', worstReview: 'Coffee quality is hit or miss.', popularTimes: 'Peak: 8-10AM weekends' },
+    ],
+    novena: [
+      { name: 'Café Hoshino', rating: 4.2, reviews: 680, priceLevel: 2, bestReview: 'Great Japanese-style soufflé pancakes and coffee.', worstReview: 'Long wait times for food.', popularTimes: 'Peak: 11AM-1PM, 3-5PM' },
+      { name: 'Starbucks', rating: 3.8, reviews: 1200, priceLevel: 2, bestReview: 'Convenient for grab-and-go.', worstReview: 'Noisy due to hospital crowd.', popularTimes: 'Peak: 9-11AM' },
+    ],
+    tampines: [
+      { name: 'Bread & Hearth', rating: 4.1, reviews: 480, priceLevel: 2, bestReview: 'Amazing sourdough and great flat white.', worstReview: 'Limited seating.', popularTimes: 'Peak: 9-11AM, 3-5PM' },
+      { name: 'O Coffee Club', rating: 3.9, reviews: 1350, priceLevel: 2, bestReview: 'Reliable café chain, good all-day breakfast.', worstReview: 'Feels generic.', popularTimes: 'Peak: 10AM-12PM' },
+    ],
+    clementi: [
+      { name: 'Seng Coffee', rating: 4.3, reviews: 380, priceLevel: 1, bestReview: 'Best traditional kopi near NUS. Students love it.', worstReview: 'Basic seating, no air-con.', popularTimes: 'Peak: 7-9AM, 4-6PM' },
+    ],
+    bedok: [
+      { name: 'Bettr Barista', rating: 4.2, reviews: 520, priceLevel: 2, bestReview: 'Social enterprise café with excellent espresso.', worstReview: 'Hard to find parking.', popularTimes: 'Peak: 9-11AM' },
+      { name: 'Kopitiam Toast', rating: 3.6, reviews: 840, priceLevel: 1, bestReview: 'Affordable and fast.', worstReview: 'Quality varies by outlet.', popularTimes: 'Peak: 7-9AM, 12-2PM' },
+    ],
+  },
+  restaurant: {
+    orchard: [
+      { name: 'Din Tai Fung', rating: 4.5, reviews: 4200, priceLevel: 3, bestReview: 'World-class xiao long bao. Consistent excellence.', worstReview: 'Expect 45-min wait during peak hours.', popularTimes: 'Peak: 12-2PM, 6-8PM' },
+      { name: 'Crystal Jade', rating: 4.1, reviews: 2800, priceLevel: 3, bestReview: 'Authentic Cantonese cuisine in a nice setting.', worstReview: 'Service can be slow when busy.', popularTimes: 'Peak: 12-1:30PM, 7-9PM' },
+      { name: 'Marché Mövenpick', rating: 3.9, reviews: 1650, priceLevel: 3, bestReview: 'Fun marketplace concept, great crepes.', worstReview: 'Confusing payment system.', popularTimes: 'Peak: 12-2PM, 6:30-8:30PM' },
+    ],
+    'paya-lebar': [
+      { name: 'Bali Thai', rating: 4.0, reviews: 980, priceLevel: 2, bestReview: 'Great Thai food in a relaxed setting.', worstReview: 'Portions could be bigger.', popularTimes: 'Peak: 12-2PM, 6-8PM' },
+      { name: 'Nando\'s', rating: 3.8, reviews: 1200, priceLevel: 2, bestReview: 'Peri-peri chicken never disappoints.', worstReview: 'Gets noisy during dinner.', popularTimes: 'Peak: 6-9PM' },
+    ],
+    jurong: [
+      { name: 'Tsukiji Fish Market', rating: 4.2, reviews: 1560, priceLevel: 2, bestReview: 'Fresh sashimi at reasonable prices.', worstReview: 'Weekend queues can be brutal.', popularTimes: 'Peak: 12-2PM, 6-8PM weekends' },
+      { name: 'Soup Restaurant', rating: 3.9, reviews: 780, priceLevel: 2, bestReview: 'Comforting traditional cuisine.', worstReview: 'Menu hasn\'t changed in years.', popularTimes: 'Peak: 12-1:30PM, 6:30-8PM' },
+    ],
+    novena: [
+      { name: 'Swensen\'s', rating: 3.7, reviews: 920, priceLevel: 2, bestReview: 'Family-friendly, kids love the ice cream.', worstReview: 'Food quality is average for the price.', popularTimes: 'Peak: 12-2PM' },
+    ],
+    tampines: [
+      { name: 'Sushi Tei', rating: 4.0, reviews: 1850, priceLevel: 2, bestReview: 'Best value-for-money Japanese food.', worstReview: 'Service speed varies greatly.', popularTimes: 'Peak: 12-2PM, 6-8:30PM' },
+      { name: 'Thai Express', rating: 3.8, reviews: 680, priceLevel: 2, bestReview: 'Quick, tasty Thai food.', worstReview: 'Portions have shrunk.', popularTimes: 'Peak: 12-1:30PM' },
+    ],
+    clementi: [
+      { name: 'Astons', rating: 4.1, reviews: 1200, priceLevel: 2, bestReview: 'Great steaks at hawker prices.', worstReview: 'Always a long queue.', popularTimes: 'Peak: 12-2PM, 6-8PM' },
+    ],
+    bedok: [
+      { name: 'Eng\'s Wanton Noodle', rating: 4.3, reviews: 2100, priceLevel: 1, bestReview: 'Best wanton mee in East Singapore!', worstReview: 'Sells out by 2PM.', popularTimes: 'Peak: 11AM-1PM' },
+      { name: 'Bedok 85 Fengshan', rating: 4.4, reviews: 3200, priceLevel: 1, bestReview: 'Must-visit hawker centre. BBQ stingray is legendary.', worstReview: 'Hot and crowded.', popularTimes: 'Peak: 6-9PM' },
+    ],
+  },
+  gym: {
+    orchard: [
+      { name: 'Virgin Active', rating: 4.3, reviews: 1420, priceLevel: 3, bestReview: 'Premium facilities, great pool area. Best gym in Orchard.', worstReview: 'Very expensive membership fees.', popularTimes: 'Peak: 7-9AM, 5-8PM' },
+      { name: 'Fitness First Platinum', rating: 4.0, reviews: 2100, priceLevel: 3, bestReview: 'Wide range of classes and well-maintained equipment.', worstReview: 'Crowded during after-work hours.', popularTimes: 'Peak: 6-9AM, 5-8PM' },
+      { name: 'Anytime Fitness', rating: 3.8, reviews: 780, priceLevel: 2, bestReview: '24/7 access is a lifesaver for shift workers.', worstReview: 'Small space, limited equipment.', popularTimes: 'Peak: 7-9AM, 6-8PM' },
+    ],
+    'paya-lebar': [
+      { name: 'ActiveSG Gym', rating: 3.6, reviews: 540, priceLevel: 1, bestReview: 'Very affordable, $2.50 per entry. Good basics.', worstReview: 'Equipment is dated, gets crowded.', popularTimes: 'Peak: 5-8PM' },
+      { name: 'Gymboxx', rating: 4.1, reviews: 890, priceLevel: 2, bestReview: 'Great value, lots of free weights.', worstReview: 'AC could be stronger.', popularTimes: 'Peak: 6-9PM' },
+    ],
+    jurong: [
+      { name: 'Jurong East ActiveSG', rating: 3.5, reviews: 620, priceLevel: 1, bestReview: 'Cheapest gym around. Has essentials.', worstReview: 'Very crowded after 6PM on weekdays.', popularTimes: 'Peak: 5-8PM weekdays' },
+      { name: 'True Fitness', rating: 3.9, reviews: 450, priceLevel: 2, bestReview: 'Good group classes, friendly staff.', worstReview: 'Aggressive sales tactics for membership.', popularTimes: 'Peak: 6-8PM' },
+    ],
+    novena: [
+      { name: 'Celebrity Fitness', rating: 3.7, reviews: 380, priceLevel: 2, bestReview: 'Convenient location near hospital. Good for quick workouts.', worstReview: 'Facilities are ageing.', popularTimes: 'Peak: 12-1PM, 6-8PM' },
+      { name: 'F45 Training', rating: 4.4, reviews: 320, priceLevel: 3, bestReview: 'Incredible HIIT workouts, amazing coaches.', worstReview: 'Pricey for group classes.', popularTimes: 'Peak: 7AM, 12PM, 6PM' },
+    ],
+    tampines: [
+      { name: 'Tampines ActiveSG', rating: 3.6, reviews: 920, priceLevel: 1, bestReview: 'Budget gym with swimming pool access.', worstReview: 'Equipment often out of order.', popularTimes: 'Peak: 5-8PM' },
+      { name: 'Anytime Fitness Tampines', rating: 4.0, reviews: 560, priceLevel: 2, bestReview: '24-hour access perfect for odd schedules.', worstReview: 'Gets packed during peak hours.', popularTimes: 'Peak: 6-9PM' },
+      { name: 'Barry\'s Bootcamp', rating: 4.5, reviews: 280, priceLevel: 3, bestReview: 'Best workout of my life! High energy.', worstReview: 'Very expensive per session.', popularTimes: 'Peak: 7-8AM, 6-7PM' },
+    ],
+    clementi: [
+      { name: 'Clementi ActiveSG', rating: 3.4, reviews: 450, priceLevel: 1, bestReview: 'Good basic gym near NUS. Student-friendly pricing.', worstReview: 'Old equipment, poor ventilation.', popularTimes: 'Peak: 4-8PM' },
+      { name: 'The Gym Pod', rating: 4.2, reviews: 210, priceLevel: 2, bestReview: 'Private gym pod concept is genius. No waiting.', worstReview: 'Limited class variety.', popularTimes: 'Peak: 7-9AM, 5-7PM' },
+    ],
+    bedok: [
+      { name: 'Bedok ActiveSG', rating: 3.5, reviews: 780, priceLevel: 1, bestReview: 'Great for residents, cheap and accessible.', worstReview: 'Dated facilities need renovation.', popularTimes: 'Peak: 5-8PM' },
+      { name: 'Fitness First', rating: 3.9, reviews: 640, priceLevel: 2, bestReview: 'Good mix of equipment and classes.', worstReview: 'Parking is terrible.', popularTimes: 'Peak: 6-9PM' },
+    ],
+  },
+  fastfood: {
+    orchard: [
+      { name: 'Shake Shack', rating: 4.2, reviews: 2800, priceLevel: 2, bestReview: 'Best burgers in Singapore! ShackBurger is iconic.', worstReview: 'Expensive for fast food.', popularTimes: 'Peak: 12-2PM, 6-8PM' },
+      { name: 'Five Guys', rating: 4.0, reviews: 1650, priceLevel: 3, bestReview: 'Generous portions, customizable burgers.', worstReview: 'Way too pricey for a burger.', popularTimes: 'Peak: 12-2PM, 5-7PM' },
+      { name: 'MOS Burger', rating: 3.9, reviews: 980, priceLevel: 2, bestReview: 'Japanese quality, rice burger is unique.', worstReview: 'Small portions for the price.', popularTimes: 'Peak: 12-1PM' },
+    ],
+    'paya-lebar': [
+      { name: 'McDonald\'s', rating: 3.7, reviews: 2200, priceLevel: 1, bestReview: 'Reliable and affordable. McSpicy is king.', worstReview: 'Always crowded at lunch.', popularTimes: 'Peak: 12-2PM, 6-8PM' },
+      { name: 'Burger King', rating: 3.5, reviews: 890, priceLevel: 1, bestReview: 'Flame-grilled taste is hard to beat.', worstReview: 'Service speed varies.', popularTimes: 'Peak: 12-1:30PM' },
+    ],
+    jurong: [
+      { name: 'KFC', rating: 3.6, reviews: 1800, priceLevel: 1, bestReview: 'Hot & Crispy chicken combo is great value.', worstReview: 'Quality inconsistent across outlets.', popularTimes: 'Peak: 12-2PM, 6-8PM' },
+      { name: 'Jollibee', rating: 4.1, reviews: 2400, priceLevel: 1, bestReview: 'Chickenjoy is addictive! Filipino comfort food.', worstReview: 'Long queues especially on weekends.', popularTimes: 'Peak: 12-2PM, 5-8PM weekends' },
+    ],
+    novena: [
+      { name: 'Subway', rating: 3.5, reviews: 560, priceLevel: 2, bestReview: 'Healthier fast food option near the hospital.', worstReview: 'Bread quality has declined.', popularTimes: 'Peak: 12-1PM' },
+    ],
+    tampines: [
+      { name: 'Texas Chicken', rating: 3.8, reviews: 920, priceLevel: 1, bestReview: 'Best fried chicken and honey biscuits.', worstReview: 'Gets very greasy.', popularTimes: 'Peak: 12-2PM, 6-8PM' },
+      { name: 'Popeyes', rating: 4.0, reviews: 1450, priceLevel: 1, bestReview: 'Cajun chicken sandwich rivals Shake Shack.', worstReview: 'Wait times can be 20+ min.', popularTimes: 'Peak: 12-2PM, 5-7PM' },
+    ],
+    clementi: [
+      { name: 'McDonald\'s Clementi', rating: 3.6, reviews: 1600, priceLevel: 1, bestReview: '24-hour study spot for NUS students.', worstReview: 'Too many students hogging seats.', popularTimes: 'Peak: 12-2PM, 10PM-12AM' },
+    ],
+    bedok: [
+      { name: 'Long John Silver\'s', rating: 3.4, reviews: 680, priceLevel: 1, bestReview: 'Nostalgic fast food. Fish and chips are decent.', worstReview: 'Menu feels outdated.', popularTimes: 'Peak: 12-2PM' },
+      { name: 'Wingstop', rating: 4.1, reviews: 780, priceLevel: 2, bestReview: 'Amazing wing flavors! Louisiana Rub is the best.', worstReview: 'Delivery is slow.', popularTimes: 'Peak: 6-9PM' },
+    ],
+  },
+  bakery: {
+    orchard: [
+      { name: 'Tiong Bahru Bakery', rating: 4.3, reviews: 1820, priceLevel: 3, bestReview: 'Best croissants in Singapore! Flaky perfection.', worstReview: 'Prices are steep for pastries.', popularTimes: 'Peak: 8-10AM, 3-5PM' },
+      { name: 'Paul Bakery', rating: 4.1, reviews: 1200, priceLevel: 3, bestReview: 'Authentic French pastries. Tarte tatin is sublime.', worstReview: 'Service can be aloof.', popularTimes: 'Peak: 10AM-12PM' },
+    ],
+    'paya-lebar': [
+      { name: 'BreadTalk', rating: 3.6, reviews: 980, priceLevel: 1, bestReview: 'Flosss bun is a classic. Good variety.', worstReview: 'Quality has dropped over the years.', popularTimes: 'Peak: 5-7PM' },
+    ],
+    jurong: [
+      { name: 'Four Leaves', rating: 3.7, reviews: 560, priceLevel: 1, bestReview: 'Reliable neighbourhood bakery. Love the curry puffs.', worstReview: 'Nothing exciting.', popularTimes: 'Peak: 4-6PM' },
+    ],
+    novena: [
+      { name: 'Barcook Bakery', rating: 3.8, reviews: 420, priceLevel: 1, bestReview: 'Fresh bakes, great garlic bread.', worstReview: 'Limited variety compared to competitors.', popularTimes: 'Peak: 5-7PM' },
+    ],
+    tampines: [
+      { name: 'Swee Heng', rating: 3.5, reviews: 680, priceLevel: 1, bestReview: 'Affordable daily bread. Bo lo bun is good.', worstReview: 'Quality is inconsistent.', popularTimes: 'Peak: 4-7PM' },
+      { name: 'Châteraisé', rating: 4.2, reviews: 1450, priceLevel: 2, bestReview: 'Japanese cakes are beautiful and delicious.', worstReview: 'Cakes are small for the price.', popularTimes: 'Peak: 2-5PM weekends' },
+    ],
+    clementi: [
+      { name: 'Polar Puffs', rating: 3.9, reviews: 380, priceLevel: 1, bestReview: 'Curry puff is the best. Students queue daily.', worstReview: 'Sells out quickly.', popularTimes: 'Peak: 3-5PM' },
+    ],
+    bedok: [
+      { name: 'Prima Deli', rating: 3.6, reviews: 520, priceLevel: 1, bestReview: 'Good cakes for celebrations at fair prices.', worstReview: 'Bread selection is basic.', popularTimes: 'Peak: 5-7PM' },
+    ],
+  },
+  salon: {
+    orchard: [
+      { name: 'Chez Vous', rating: 4.5, reviews: 920, priceLevel: 3, bestReview: 'Best hair salon in Singapore! Hideaway concept is unique.', worstReview: 'Very expensive, book weeks in advance.', popularTimes: 'Peak: 10AM-1PM Sat' },
+      { name: 'Salon Vim', rating: 4.2, reviews: 1280, priceLevel: 3, bestReview: 'Expert colorists, love the results every time.', worstReview: 'Long wait even with appointment.', popularTimes: 'Peak: 11AM-3PM' },
+    ],
+    'paya-lebar': [
+      { name: 'EC House', rating: 3.7, reviews: 450, priceLevel: 1, bestReview: 'Quick and cheap haircut. Great value at $10.', worstReview: 'Rush job, no frills.', popularTimes: 'Peak: 12-2PM, 5-7PM' },
+      { name: 'QB House', rating: 3.8, reviews: 680, priceLevel: 1, bestReview: 'Fast 10-min cuts, very efficient.', worstReview: 'Basic cuts only, no styling.', popularTimes: 'Peak: 12-1PM, 6-7PM' },
+    ],
+    jurong: [
+      { name: 'Jass Hair Design', rating: 4.0, reviews: 320, priceLevel: 2, bestReview: 'Great neighbourhood salon, friendly staff.', worstReview: 'Can be slow on weekends.', popularTimes: 'Peak: 10AM-2PM Sat-Sun' },
+    ],
+    novena: [
+      { name: 'Walking on Sunshine', rating: 4.3, reviews: 560, priceLevel: 2, bestReview: 'Korean-style salon + café combo is brilliant.', worstReview: 'Prices higher than neighbourhood salons.', popularTimes: 'Peak: 11AM-3PM weekends' },
+    ],
+    tampines: [
+      { name: 'Kcuts', rating: 3.5, reviews: 420, priceLevel: 1, bestReview: 'Budget-friendly, good for basic cuts.', worstReview: 'Long wait, no booking system.', popularTimes: 'Peak: 10AM-12PM Sat' },
+      { name: 'Jean Yip', rating: 3.9, reviews: 780, priceLevel: 2, bestReview: 'Reliable chain, good scalp treatments.', worstReview: 'Upselling can be aggressive.', popularTimes: 'Peak: 11AM-3PM' },
+    ],
+    clementi: [
+      { name: 'Hair Attic', rating: 4.1, reviews: 210, priceLevel: 2, bestReview: 'Hidden gem near Clementi. Great colour work.', worstReview: 'Small shop, limited walk-in capacity.', popularTimes: 'Peak: 2-6PM Sat' },
+    ],
+    bedok: [
+      { name: 'Act Point Salon', rating: 3.8, reviews: 380, priceLevel: 2, bestReview: 'Good service, reasonable prices for the area.', worstReview: 'Appointment system could be better.', popularTimes: 'Peak: 10AM-1PM Sat' },
+    ],
+  },
+  convenience: {
+    orchard: [
+      { name: '7-Eleven (ION)', rating: 3.5, reviews: 620, priceLevel: 1, bestReview: 'Open 24/7, lifesaver for late-night snacks.', worstReview: 'Tiny space, limited selection.', popularTimes: 'Peak: 12-2PM, 10PM-12AM' },
+      { name: 'Cheers', rating: 3.3, reviews: 380, priceLevel: 1, bestReview: 'Local snacks selection is good.', worstReview: 'More expensive than supermarket.', popularTimes: 'Peak: 8-10AM, 5-7PM' },
+    ],
+    'paya-lebar': [
+      { name: 'FairPrice Xpress', rating: 3.7, reviews: 420, priceLevel: 1, bestReview: 'Good range for a mini-mart. Has fresh items.', worstReview: 'Closes early.', popularTimes: 'Peak: 5-8PM' },
+    ],
+    jurong: [
+      { name: '7-Eleven', rating: 3.4, reviews: 280, priceLevel: 1, bestReview: 'Convenient location right at MRT exit.', worstReview: 'Limited healthy options.', popularTimes: 'Peak: 7-9AM, 5-7PM' },
+    ],
+    novena: [
+      { name: 'Cheers (Novena Square)', rating: 3.5, reviews: 320, priceLevel: 1, bestReview: 'Handy for hospital visitors.', worstReview: 'Small and cramped.', popularTimes: 'Peak: 10AM-12PM, 5-7PM' },
+    ],
+    tampines: [
+      { name: 'Sheng Siong Express', rating: 3.9, reviews: 560, priceLevel: 1, bestReview: 'Good prices, feels like a mini supermarket.', worstReview: 'Can be crowded in evenings.', popularTimes: 'Peak: 5-8PM' },
+    ],
+    clementi: [
+      { name: '7-Eleven (Clementi MRT)', rating: 3.4, reviews: 310, priceLevel: 1, bestReview: 'Student staple for quick bites.', worstReview: 'Always has a queue during peak.', popularTimes: 'Peak: 8-9AM, 4-6PM' },
+    ],
+    bedok: [
+      { name: 'FairPrice Xpress', rating: 3.6, reviews: 440, priceLevel: 1, bestReview: 'Good neighbourhood mini-mart.', worstReview: 'Needs more variety.', popularTimes: 'Peak: 6-8PM' },
+    ],
+  },
+};
+
+function getCompetitorData(zoneId, businessType) {
+  // Direct match: return competitor data for this exact businessType + zone
+  if (COMPETITOR_DB[businessType] && COMPETITOR_DB[businessType][zoneId]) {
+    return COMPETITOR_DB[businessType][zoneId];
+  }
+
+  // Category mapping: map similar business types to the closest available data
+  const categoryMap = {
+    dessert: 'bakery',
+    healthfood: 'cafe',
+    cloudkitchen: 'restaurant',
+    bar: 'restaurant',
+    spa: 'salon',
+    laundry: 'convenience',
+    grocery: 'convenience',
+    pharmacy: 'convenience',
+    fashion: 'convenience',
+    electronics: 'convenience',
+    petshop: 'convenience',
+    florist: 'convenience',
+    bookstore: 'convenience',
+    tuition: 'convenience',
+    clinic: 'convenience',
+    repair: 'convenience',
+    photography: 'salon',
+    coworking: 'cafe',
+    logistics: 'convenience',
+    printshop: 'convenience',
+    agency: 'cafe',
+    warehouse: 'convenience',
+    catering: 'restaurant',
   };
-  return competitors[zoneId] || [];
+
+  const mappedType = categoryMap[businessType];
+  if (mappedType && COMPETITOR_DB[mappedType] && COMPETITOR_DB[mappedType][zoneId]) {
+    return COMPETITOR_DB[mappedType][zoneId];
+  }
+
+  // Fallback: return empty — no competitor data for this combo
+  return [];
 }
 
 // ============================================================
@@ -897,28 +1133,14 @@ function MapLibreMap({ zones, revealedZones, onZoneClick, scanning, businessType
   const initMap = async () => {
     if (!mapContainer.current || mapRef.current) return;
 
-    let styleObj = null;
-
-    if (GRABMAPS_API_KEY) {
-      try {
-        const res = await fetch('https://maps.grab.com/api/style.json', {
-          headers: { 'Authorization': 'Bearer ' + GRABMAPS_API_KEY },
-        });
-        if (res.ok) {
-          styleObj = await res.json();
-          console.log('GrabMaps style loaded successfully!');
-        } else {
-          console.warn('GrabMaps style.json returned', res.status, '— falling back to CARTO dark');
-        }
-      } catch (err) {
-        console.warn('Failed to fetch GrabMaps style:', err.message);
-      }
-    }
+    // Always use dark theme — CARTO dark-matter for guaranteed dark appearance
+    // GrabMaps default style.json is light-themed, so we skip it for dark mode
+    const darkStyle = FALLBACK_STYLE; // 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
 
     try {
       const opts = {
         container: mapContainer.current,
-        style: styleObj || FALLBACK_STYLE,
+        style: darkStyle,
         center: [103.8198, 1.3521],
         zoom: 11.5,
         pitch: 0,
@@ -927,15 +1149,6 @@ function MapLibreMap({ zones, revealedZones, onZoneClick, scanning, businessType
         attributionControl: true,
         customAttribution: '\u00a9 Grab | \u00a9 OpenStreetMap contributors',
       };
-
-      if (styleObj && GRABMAPS_API_KEY) {
-        opts.transformRequest = (url) => {
-          if (url && url.includes('maps.grab.com')) {
-            return { url, headers: { 'Authorization': 'Bearer ' + GRABMAPS_API_KEY } };
-          }
-          return { url };
-        };
-      }
 
       const map = new window.maplibregl.Map(opts);
       map.on('load', () => {
